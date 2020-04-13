@@ -20,7 +20,6 @@ if __name__ == '__main__':
 @cli.command("convert")
 def cc(csv_dir, output_dir):
 	"""convert csv to influx line protocol !!!"""
-	print(csv_dir, output_dir)
 	p = '{}/*.csv'.format(csv_dir)
 	folders = sorted(glob.glob(p))
 	files = [{'dir': os.path.dirname(item), 'filename': os.path.basename(item).split('.csv')[0]} for item in folders]
@@ -44,29 +43,34 @@ def cc(csv_dir, output_dir):
 
 	for f in files:
 		p1bar.set_description('[{}] {}/{}'.format(f['filename'].split("_")[0], db, measurement))
-		# p1bar.set_postfix(meta='[{}] db={}, measurement={}'.format(f['filename'].split("_")[0], db, measurement))
 		file = '{}/{}.csv'.format(f['dir'], f['filename'])
 		target_file = '{}/LP_{}.txt'.format(os.path.abspath(output_dir), f['filename'])
+	
 		df = pd.read_csv(file)
 		df = df.fillna(0)
 
 		with open(target_file, "w") as out_file:
 			pbar = tqdm(total=len(df), leave=False, unit='lines')
 			rows = df.iterrows()
-			for (idx, row) in rows:
-				time = row['time']
-				name = row['name']
-				topic = row['topic']
-				row = row.drop(labels=['time', 'name', 'topic', 'host'])
-				row = row[row != 0]
-				s = "{},topic={} ".format(name, topic)
-				for (key, val) in row.iteritems():
-					s += "{}={},".format(key, val)
-				s = s[:-1] + ' ' + str(time) + '\n'
+			for idx, row in rows:
+				s = toline(row)
 				out_file.write(s)
-				s = ''
 				pbar.update(1)
 				pbar.set_postfix(file=target_file)
 			pbar.close()
 		p1bar.update(1)
 	p1bar.close()
+	print('done')
+
+
+def toline(row):
+	time = row['time']
+	name = row['name']
+	topic = row['topic']
+	row = row.drop(labels=['time', 'name', 'topic', 'host'])
+	row = row[row != 0]
+	s = "{},topic={} ".format(name, topic)
+	for (key, val) in row.iteritems():
+		s += "{}={},".format(key, val)
+	s = s[:-1] + ' ' + str(time) + '\n'
+	return s
