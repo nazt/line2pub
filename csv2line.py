@@ -3,7 +3,10 @@ import argparse
 import pandas as pd
 from tqdm import tqdm
 from subprocess import call
+import sys
 import click
+
+assert sys.version[:1] == "3"
 
 
 @click.group()
@@ -15,55 +18,77 @@ if __name__ == '__main__':
 	cli()
 
 
-@click.option('--csv-dir', required=True, type=str, help='CSVInput directory')
-@click.option('--output-dir', required=True, type=str, help='Output directory')
+def filename(path):
+	return os.path.basename(path).split('.csv')[0]
+
+
+# @click.option('--output-dir', required=True, type=str, help='Output directory')
+@click.option('--csv-file', required=True, type=str, help='CSVInput directory')
 @cli.command("convert")
-def cc(csv_dir, output_dir):
+def cc(csv_file):
 	"""convert csv to influx line protocol !!!"""
-	p = '{}/*.csv'.format(csv_dir)
-	folders = sorted(glob.glob(p))
-	files = [{'dir': os.path.dirname(item), 'filename': os.path.basename(item).split('.csv')[0]} for item in folders]
-	# call('clear')
-	directory = files[0]['dir'].split("/")[-2:]
 
-	db = directory[0]
-	measurement = directory[1]
+	processing_dir = os.path.normpath(os.path.dirname(csv_file))
+	output_dir = processing_dir
 
-	p1bar = tqdm(total=len(files), unit='files')
-	lines = [
-		"# DDL",
-		"CREATE DATABASE {}".format(db),
-		"",
-		"# DML",
-		"# CONTEXT-DATABASE: {}".format(db),
-		""
-	]
-	with open(os.path.abspath(output_dir) + '/meta.txt', 'w') as meta:
-		meta.write("\n".join(lines))
+	csv_file_input = csv_file
+	done_dir = "{}/.done".format(output_dir)
+	file_name = os.path.basename(csv_file)
+	done_flag_file = "{}/.done/{}".format(output_dir, file_name)
 
-	for f in files:
-		p1bar.set_description('[{}] {}/{}'.format(f['filename'].split("_")[0], db, measurement))
-		file = '{}/{}.csv'.format(f['dir'], f['filename'])
-		target_file = '{}/LP_{}.txt'.format(os.path.abspath(output_dir), f['filename'])
-	
-		df = pd.read_csv(file)
-		df = df.fillna(0)
+	if not os.path.isdir(done_dir):
+		os.makedirs(done_dir, exist_ok=True)
 
-		with open(target_file, "w") as out_file:
-			pbar = tqdm(total=len(df), leave=False, unit='lines')
-			rows = df.iterrows()
-			for idx, row in rows:
-				s = toline(row)
-				out_file.write(s)
-				pbar.update(1)
-				pbar.set_postfix(file=target_file)
-			pbar.close()
-		p1bar.update(1)
-	p1bar.close()
-	print('done')
+	if os.path.exists(done_flag_file):
+		print("{0} exists\r\nSKIPPED!".format(done_flag_file))
+		return
+
+	# t = '{}/done.txt'.format(os.path.abspath(output_dir))
+
+	# if os.path.exists(t):
+	# 	print("{0} SKIPPED!".format(csv_dir.split("/")[-1:][0]))
+	# return
+
+	# folders = sorted(glob.glob('{0}/*.csv'.format(csv_dir)))
+	# files = [{'name': filename(file)} for file in folders]
+	# directory = csv_dir.split("/")[-3:]
+
+	# db = directory[0]
+	# measurement = directory[1]
+	# month = directory[2]
+
+	# p1bar = tqdm(total=len(files), unit='files')
+	# write_meta(db=db, output_dir=output_dir)
+
+	# for file in files:
+	target_file = '{}/LP_{}.txt'.format(os.path.abspath(output_dir), file_name)
+
+	df = pd.read_csv(csv_file_input)
+	df = df.fillna(0)
+
+	# measurement = df.iloc[0]['name']
+	# p1bar.set_description('[{}] {}/{}'.format(file['name'].split("_")[0], "dummy-db", measurement))
+
+	with open(target_file, "w") as out_file:
+		pbar = tqdm(total=len(df), leave=False, unit='lines')
+		rows = df.iterrows()
+		for idx, row in rows:
+			s = to_line(row)
+			out_file.write(s)
+			pbar.update(1)
+			pbar.set_postfix(file=target_file)
+		pbar.close()
+
+	# p1bar.update(1)
+
+	# p1bar.close()
+
+	# t = '{}/done.txt'.format(os.path.abspath(output_dir))
+	with open(done_flag_file, 'w') as meta:
+		meta.write("")
 
 
-def toline(row):
+def to_line(row):
 	time = row['time']
 	name = row['name']
 	topic = row['topic']
@@ -74,3 +99,15 @@ def toline(row):
 		s += "{}={},".format(key, val)
 	s = s[:-1] + ' ' + str(time) + '\n'
 	return s
+
+# def write_meta(db, output_dir):
+# 	lines = [
+# 		"# DDL",
+# 		"CREATE DATABASE {}".format(db),
+# 		"",
+# 		"# DML",
+# 		"# CONTEXT-DATABASE: {}".format(db),
+# 		""
+# 	]
+# 	with open(os.path.abspath(output_dir) + '/../meta.txt', 'w') as meta:
+# 		meta.write("\n".join(lines))
