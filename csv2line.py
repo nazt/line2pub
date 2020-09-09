@@ -92,7 +92,11 @@ def to_line(row):
 	time = row['time']
 	name = row['name']
 	topic = row['topic']
-	row = row.drop(labels=['time', 'name', 'topic', 'host'])
+	if 'host' in row:
+		row = row.drop(labels=['time', 'name', 'topic', 'host'])
+	else:
+		row = row.drop(labels=['time', 'name', 'topic'])
+
 	row = row[row != 0]
 	s = "{},topic={} ".format(name, topic)
 	for (key, val) in row.iteritems():
