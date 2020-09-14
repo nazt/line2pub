@@ -84,13 +84,6 @@ def cc(file, model, username, password, host, port):
 
     print(file, model, username, password, host, port)
 
-    # processing_dir = os.path.normpath(os.path.dirname(file))
-
-    # csv_file_input = file
-    # file_name = os.path.basename(file)
-    # print(file)
-    # for line in tqdm(f, total=num_lines):
-
     client = mqtt.Client()
     if username:
         client.username_pw_set(username, password)
@@ -103,29 +96,6 @@ def cc(file, model, username, password, host, port):
     # client.on_message = on_message
     client.connect(host, port)
     client.loop_forever()
-
-
-# df = pd.read_csv(csv_file_input)
-# rows = df.iterrows()
-# for idx, row in rows:
-# 	# s = to_line(row)
-# 	# out_file.write(s)
-# 	pbar.update(1)
-# 	pbar.set_postfix(file=file)
-# pbar.close()
-
-# with open(target_file, "w") as out_file:
-# 	pbar = tqdm(total=len(df), leave=False, unit='lines')
-# 	rows = df.iterrows()
-# 	for idx, row in rows:
-# 		# s = to_line(row)
-# 		# out_file.write(s)
-# 		pbar.update(1)
-# 		pbar.set_postfix(file=target_file)
-# 	pbar.close()
-
-# p1bar.update(1)
-# p1bar.close()
 
 def to_line(row):
     time = row['time']
