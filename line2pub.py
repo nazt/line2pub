@@ -56,7 +56,7 @@ def loop(data):
         for line in f:
             sleep(0.00066)
             parsed = parse_line(line)
-            topic = parsed['tags']['topic'].split("/gearname/")
+            topic = parsed['tags']['topic'].split("/")[-2]
             topic = "DUSTBOY/{}/{}".format(model, topic[1])
             parsed['timestamp'] = str(parsed['time']) + '000'
             # print(parsed['timestamp'])
