@@ -1,13 +1,13 @@
 from setuptools import setup
 
 setup(
-	name="csv2line",
+	name="line2pub",
 	version="1.0",
-	py_modules=["csv2line"],
+	py_modules=["line2pub"],
 	include_package_data=True,
-	install_requires=["click", "tqdm", "pandas"],
+	install_requires=["click", "tqdm", "pandas", "line_protocol_parser", "paho-mqtt"],
 	entry_points="""
         [console_scripts]
-        csv2line=csv2line:cli
+        line2pub=line2pub:cli
     """,
 )
