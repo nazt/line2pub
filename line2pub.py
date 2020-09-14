@@ -16,6 +16,8 @@ import threading
 
 data = {"flag": False}
 
+t = None
+
 
 def on_connect(self, client, userdata, rc):
     global data
@@ -25,6 +27,10 @@ def on_connect(self, client, userdata, rc):
     else:
         print("Bad connection Returned code=", rc)
 
+
+def on_message(client, userdata, message):
+    global data
+    data['msg_count'] += 1
 
 @click.group()
 def cli():
@@ -44,9 +50,11 @@ def loop(data):
         pass
 
     print(data['file'])
-
+    data['msg_count'] = 0
     file = data['file']
     model = data['model']
+    delay = data['delay']
+    pub_topic = data['pub_topic']
     client = data['client']
 
     num_lines = sum(1 for line in open(file, 'r'))
@@ -54,17 +62,21 @@ def loop(data):
     # telegraf/mart-ubuntu-s-1vcpu-1gb-sgp1-01/Model-PRO
     with open(file, 'r') as f:
         for line in f:
-            sleep(0.00066)
+            sleep(delay)
+            # sleep(0.00066)
             parsed = parse_line(line)
             topic = parsed['tags']['topic'].split("/")[-2]
             topic = "DUSTBOY/{}/{}".format(model, topic[1])
             parsed['timestamp'] = str(parsed['time']) + '000'
             # print(parsed['timestamp'])
             parsed['tags']['topic'] = topic
-            pub_topic = 'etl/x/{}'.format(model)
             client.publish(pub_topic, json.dumps(parsed, sort_keys=True))
             pbar.update(1)
         pbar.close()
+        print('msg_count =  ', data['msg_count'])
+        client.loop_stop()
+        client.disconnect()
+        raise SystemExit
 
 
 t = threading.Thread(target=loop, args=(data,))
@@ -77,25 +89,37 @@ t.start()
 @click.option('--username', required=False, type=str, help='')
 @click.option('--password', required=False, type=str, help='')
 @click.option('--host', required=True, type=str, help='')
-@click.option('--port', required=False, type=int, help='')
+@click.option('--delay', required=True, type=float, help='')
+@click.option('--port', required=True, type=int, help='')
+@click.option('--echo', required=False, type=bool, help='')
 @cli.command("publish")
-def cc(file, model, username, password, host, port):
+def cc(file, model, username, password, host, port, delay, echo):
     """publish influx line protocol to mqtt !!!"""
 
-    print(file, model, username, password, host, port)
+    # print(file, model, username, password, host, port)
 
     client = mqtt.Client()
+    pub_topic = 'etl/x/{}'.format(model)
+    data['file'] = file
+    data['model'] = model
+    data['delay'] = delay
+    data['pub_topic'] = pub_topic
+
+
     if username:
         client.username_pw_set(username, password)
     client.on_connect = on_connect
-
-    data['file'] = file
-    data['model'] = model
-    data['client'] = client
+    if echo:
+        client.on_message = on_message
 
     # client.on_message = on_message
     client.connect(host, port)
-    client.loop_forever()
+    client.subscribe(pub_topic)
+
+    data['client'] = client
+
+    client.loop_start()
+
 
 def to_line(row):
     time = row['time']
