@@ -66,16 +66,16 @@ def loop(data):
             # sleep(0.00066)
             parsed = parse_line(line)
             topic = parsed['tags']['topic'].split("/")[-2]
-            topic = "DUSTBOY/{}/{}".format(model, topic[1])
+            topic = "DUSTBOY/{}/{}/status".format(model, topic)
             parsed['timestamp'] = str(parsed['time']) + '000'
-            # print(parsed['timestamp'])
             parsed['tags']['topic'] = topic
-            client.publish(pub_topic, json.dumps(parsed, sort_keys=True))
+            client.publish(pub_topic, json.dumps(parsed, sort_keys=True), qos=0)
             pbar.update(1)
         pbar.close()
+        sleep(0.00066)
         print('msg_count =  ', data['msg_count'])
-        client.loop_stop()
-        client.disconnect()
+        # client.loop_stop()
+        # client.disconnect()
         raise SystemExit
 
 
