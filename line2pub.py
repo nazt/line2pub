@@ -32,6 +32,7 @@ def on_message(client, userdata, message):
     global data
     data['msg_count'] += 1
 
+
 @click.group()
 def cli():
     """A CLI wrapper for Line2Pub-lish"""
@@ -64,11 +65,13 @@ def loop(data):
         for line in f:
             sleep(delay)
             # sleep(0.00066)
+            # print(line)
             parsed = parse_line(line)
             topic = parsed['tags']['topic'].split("/")[-2]
             topic = "DUSTBOY/{}/{}/status".format(model, topic)
             parsed['timestamp'] = str(parsed['time']) + '000'
             parsed['tags']['topic'] = topic
+            parsed['batch_id'] =  data['batch_id']
             client.publish(pub_topic, json.dumps(parsed, sort_keys=True), qos=0)
             pbar.update(1)
         pbar.close()
@@ -92,8 +95,9 @@ t.start()
 @click.option('--delay', required=True, type=float, help='')
 @click.option('--port', required=True, type=int, help='')
 @click.option('--echo', required=False, type=bool, help='')
+@click.option('--batch_id', required=False, type=str, help='Specify Batch Id')
 @cli.command("publish")
-def cc(file, model, username, password, host, port, delay, echo):
+def cc(file, model, username, password, host, port, delay, echo, batch_id):
     """publish influx line protocol to mqtt !!!"""
 
     # print(file, model, username, password, host, port)
@@ -104,7 +108,7 @@ def cc(file, model, username, password, host, port, delay, echo):
     data['model'] = model
     data['delay'] = delay
     data['pub_topic'] = pub_topic
-
+    data['batch_id'] = batch_id
 
     if username:
         client.username_pw_set(username, password)
