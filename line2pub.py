@@ -96,19 +96,20 @@ t.start()
 @click.option('--port', required=True, type=int, help='')
 @click.option('--echo', required=False, type=bool, help='')
 @click.option('--batch_id', required=False, type=str, help='Specify Batch Id')
+@click.option('--pub_prefix', required=True, type=str, help='Publish prefix')
 @cli.command("publish")
-def cc(file, model, username, password, host, port, delay, echo, batch_id):
+def cc(file, model, username, password, host, port, delay, echo, batch_id, pub_prefix):
     """publish influx line protocol to mqtt !!!"""
 
     # print(file, model, username, password, host, port)
 
     client = mqtt.Client()
-    pub_topic = 'etl/x/{}'.format(model)
+    pub_topic = '{}/{}'.format(pub_prefix, model)
     data['file'] = file
     data['model'] = model
     data['delay'] = delay
-    data['pub_topic'] = pub_topic
     data['batch_id'] = batch_id
+    data['pub_topic'] = pub_topic
 
     if username:
         client.username_pw_set(username, password)
