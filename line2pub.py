@@ -58,9 +58,9 @@ def loop(data):
     pub_topic = data['pub_topic']
     client = data['client']
     lps = data['lps']
-    time_delta = delay
+    loop_delta = delay
     if lps:
-        time_delta = 1. / lps
+        loop_delta = 1. / lps
 
     num_lines = sum(1 for line in open(file, 'r'))
     pbar = tqdm(total=num_lines, leave=False, unit='lines')
