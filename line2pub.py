@@ -7,7 +7,7 @@ import sys
 import click
 from line_protocol_parser import parse_line
 from time import sleep
-
+import time
 assert sys.version[:1] == "3"
 
 import paho.mqtt.client as mqtt
@@ -57,13 +57,17 @@ def loop(data):
     delay = data['delay']
     pub_topic = data['pub_topic']
     client = data['client']
+    lps = data['lps']
+    time_delta = delay
+    if lps:
+        time_delta = 1. / lps
 
     num_lines = sum(1 for line in open(file, 'r'))
     pbar = tqdm(total=num_lines, leave=False, unit='lines')
     # telegraf/mart-ubuntu-s-1vcpu-1gb-sgp1-01/Model-PRO
     with open(file, 'r') as f:
         for line in f:
-            sleep(delay)
+            sleep(time_delta)
             # sleep(0.00066)
             # print(line)
             parsed = parse_line(line)
@@ -97,8 +101,9 @@ t.start()
 @click.option('--echo', required=False, type=bool, help='')
 @click.option('--batch_id', required=False, type=str, help='Specify Batch Id')
 @click.option('--pub_prefix', required=True, type=str, help='Publish prefix')
+@click.option('--lps', required=False, type=int, help='Publish prefix')
 @cli.command("publish")
-def cc(file, model, username, password, host, port, delay, echo, batch_id, pub_prefix):
+def cc(file, model, username, password, host, port, delay, echo, batch_id, pub_prefix, lps):
     """publish influx line protocol to mqtt !!!"""
 
     # print(file, model, username, password, host, port)
@@ -110,10 +115,12 @@ def cc(file, model, username, password, host, port, delay, echo, batch_id, pub_p
     data['delay'] = delay
     data['batch_id'] = batch_id
     data['pub_topic'] = pub_topic
+    data['lps'] = lps
 
     if username:
         client.username_pw_set(username, password)
     client.on_connect = on_connect
+
     if echo:
         client.on_message = on_message
 
