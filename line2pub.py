@@ -64,10 +64,15 @@ def loop(data):
 
     num_lines = sum(1 for line in open(file, 'r'))
     pbar = tqdm(total=num_lines, leave=False, unit='lines')
+
+    current_time = target_time = time.process_time()
+
     # telegraf/mart-ubuntu-s-1vcpu-1gb-sgp1-01/Model-PRO
     with open(file, 'r') as f:
         for line in f:
-            sleep(time_delta)
+            previous_time, current_time = current_time, time.process_time()
+            time_delta = current_time - previous_time
+            # sleep(time_delta)
             # sleep(0.00066)
             # print(line)
             parsed = parse_line(line)
@@ -78,6 +83,12 @@ def loop(data):
             parsed['batch_id'] =  data['batch_id']
             client.publish(pub_topic, json.dumps(parsed, sort_keys=True), qos=0)
             pbar.update(1)
+            target_time += loop_delta
+            sleep_time = target_time - time.process_time()
+            if sleep_time > 0:
+                time.sleep(sleep_time)
+            else:
+                print ('took too long')
         pbar.close()
         sleep(0.00066)
         print('msg_count =  ', data['msg_count'])
