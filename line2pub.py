@@ -23,7 +23,7 @@ def on_connect(self, client, userdata, rc):
     global data
     if rc == 0:
         data['flag'] = True
-        print("connected OK Returned code=", rc)
+        # print("connected OK Returned code=", rc)
     else:
         print("Bad connection Returned code=", rc)
 
@@ -65,6 +65,7 @@ def loop(data):
     num_lines = sum(1 for line in open(file, 'r'))
     pbar = tqdm(total=num_lines, leave=False, unit='lines')
     # telegraf/mart-ubuntu-s-1vcpu-1gb-sgp1-01/Model-PRO
+    cnt = 0
     with open(file, 'r') as f:
         for line in f:
             # sleep(delay)
@@ -79,11 +80,13 @@ def loop(data):
             client.publish(pub_topic, json.dumps(parsed, sort_keys=True), qos=0)
             pbar.update(1)
             timer.sleep()  # Pause just enough to have a 1/60 second wait since last fpstSleep() call.
+            cnt += 1
         pbar.close()
+        # print('cnt=', cnt)
         sleep(0.00066)
-        print('msg_count =  ', data['msg_count'])
+        # print('msg_count =  ', data['msg_count'])
+        client.disconnect()
         # client.loop_stop()
-        # client.disconnect()
         raise SystemExit
 
 
@@ -131,7 +134,10 @@ def cc(file, model, username, password, host, port, delay, echo, batch_id, pub_p
 
     data['client'] = client
 
-    client.loop_start()
+    try:
+        client.loop_forever()
+    except e:
+        pass
 
 
 def to_line(row):
